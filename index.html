@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Formulaire d'embauche – RH</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="form-header">
+      <div class="logo-placeholder">&#128188;</div>
+      <h1>Formulaire de Candidature</h1>
+      <p>Remplissez ce formulaire pour postuler à un poste dans notre organisation.</p>
+    </header>
+
+    <form id="hiringForm" novalidate>
+
+      <!-- Étape 1 : Informations personnelles -->
+      <section class="form-section" id="step-1">
+        <h2><span class="step-badge">1</span> Informations personnelles</h2>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">Prénom <span class="required">*</span></label>
+            <input type="text" id="firstName" name="firstName" placeholder="ex. Marie" required />
+            <span class="error-msg"></span>
+          </div>
+          <div class="form-group">
+            <label for="lastName">Nom <span class="required">*</span></label>
+            <input type="text" id="lastName" name="lastName" placeholder="ex. Dupont" required />
+            <span class="error-msg"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email">Adresse e-mail <span class="required">*</span></label>
+            <input type="email" id="email" name="email" placeholder="ex. marie.dupont@email.com" required />
+            <span class="error-msg"></span>
+          </div>
+          <div class="form-group">
+            <label for="phone">Téléphone <span class="required">*</span></label>
+            <input type="tel" id="phone" name="phone" placeholder="ex. 06 12 34 56 78" required />
+            <span class="error-msg"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="birthDate">Date de naissance</label>
+            <input type="date" id="birthDate" name="birthDate" />
+            <span class="error-msg"></span>
+          </div>
+          <div class="form-group">
+            <label for="nationality">Nationalité</label>
+            <input type="text" id="nationality" name="nationality" placeholder="ex. Française" />
+            <span class="error-msg"></span>
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="address">Adresse complète</label>
+          <input type="text" id="address" name="address" placeholder="Rue, ville, code postal" />
+          <span class="error-msg"></span>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="linkedin">Profil LinkedIn / Portfolio</label>
+          <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/votre-profil" />
+          <span class="error-msg"></span>
+        </div>
+      </section>
+
+      <!-- Étape 2 : Poste recherché -->
+      <section class="form-section" id="step-2">
+        <h2><span class="step-badge">2</span> Poste recherché</h2>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="position">Poste souhaité <span class="required">*</span></label>
+            <select id="position" name="position" required>
+              <option value="">-- Sélectionnez un poste --</option>
+              <option value="dev_frontend">Développeur Front-end</option>
+              <option value="dev_backend">Développeur Back-end</option>
+              <option value="dev_fullstack">Développeur Full-stack</option>
+              <option value="devops">Ingénieur DevOps</option>
+              <option value="data_analyst">Data Analyst</option>
+              <option value="product_manager">Chef de Produit (Product Manager)</option>
+              <option value="designer">Designer UX/UI</option>
+              <option value="commercial">Commercial(e)</option>
+              <option value="comptable">Comptable</option>
+              <option value="rh">Chargé(e) des Ressources Humaines</option>
+              <option value="autre">Autre</option>
+            </select>
+            <span class="error-msg"></span>
+          </div>
+          <div class="form-group">
+            <label for="contractType">Type de contrat <span class="required">*</span></label>
+            <select id="contractType" name="contractType" required>
+              <option value="">-- Sélectionnez --</option>
+              <option value="cdi">CDI</option>
+              <option value="cdd">CDD</option>
+              <option value="stage">Stage</option>
+              <option value="alternance">Alternance</option>
+              <option value="freelance">Freelance / Mission</option>
+            </select>
+            <span class="error-msg"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="availability">Disponibilité <span class="required">*</span></label>
+            <input type="date" id="availability" name="availability" required />
+            <span class="error-msg"></span>
+          </div>
+          <div class="form-group">
+            <label for="workMode">Mode de travail</label>
+            <select id="workMode" name="workMode">
+              <option value="">-- Sélectionnez --</option>
+              <option value="presentiel">Présentiel</option>
+              <option value="remote">Télétravail complet</option>
+              <option value="hybride">Hybride</option>
+            </select>
+            <span class="error-msg"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="salaryMin">Prétentions salariales (brut/an)</label>
+            <input type="number" id="salaryMin" name="salaryMin" placeholder="ex. 35000" min="0" />
+            <span class="error-msg"></span>
+          </div>
+          <div class="form-group">
+            <label for="salaryMax">Maximum souhaité</label>
+            <input type="number" id="salaryMax" name="salaryMax" placeholder="ex. 45000" min="0" />
+            <span class="error-msg"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Étape 3 : Formation & Expérience -->
+      <section class="form-section" id="step-3">
+        <h2><span class="step-badge">3</span> Formation &amp; Expérience</h2>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="educationLevel">Niveau de formation <span class="required">*</span></label>
+            <select id="educationLevel" name="educationLevel" required>
+              <option value="">-- Sélectionnez --</option>
+              <option value="bac">Bac</option>
+              <option value="bac2">Bac +2 (BTS, DUT)</option>
+              <option value="bac3">Bac +3 (Licence)</option>
+              <option value="bac5">Bac +5 (Master, Ingénieur)</option>
+              <option value="bac8">Bac +8 (Doctorat)</option>
+              <option value="autre">Autre</option>
+            </select>
+            <span class="error-msg"></span>
+          </div>
+          <div class="form-group">
+            <label for="yearsOfExperience">Années d'expérience <span class="required">*</span></label>
+            <select id="yearsOfExperience" name="yearsOfExperience" required>
+              <option value="">-- Sélectionnez --</option>
+              <option value="0">Débutant (0 an)</option>
+              <option value="1-2">1 – 2 ans</option>
+              <option value="3-5">3 – 5 ans</option>
+              <option value="6-10">6 – 10 ans</option>
+              <option value="10+">Plus de 10 ans</option>
+            </select>
+            <span class="error-msg"></span>
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="skills">Compétences principales <span class="required">*</span></label>
+          <textarea id="skills" name="skills" rows="4" placeholder="Listez vos compétences techniques et transversales..." required></textarea>
+          <span class="error-msg"></span>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="experience">Résumé des expériences professionnelles <span class="required">*</span></label>
+          <textarea id="experience" name="experience" rows="5" placeholder="Décrivez vos postes précédents, responsabilités et réalisations..." required></textarea>
+          <span class="error-msg"></span>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="languages">Langues parlées</label>
+          <div class="checkbox-group" id="languages">
+            <label class="checkbox-label"><input type="checkbox" name="languages" value="fr" /> Français</label>
+            <label class="checkbox-label"><input type="checkbox" name="languages" value="en" /> Anglais</label>
+            <label class="checkbox-label"><input type="checkbox" name="languages" value="es" /> Espagnol</label>
+            <label class="checkbox-label"><input type="checkbox" name="languages" value="de" /> Allemand</label>
+            <label class="checkbox-label"><input type="checkbox" name="languages" value="ar" /> Arabe</label>
+            <label class="checkbox-label"><input type="checkbox" name="languages" value="other" /> Autre</label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Étape 4 : Documents & Motivation -->
+      <section class="form-section" id="step-4">
+        <h2><span class="step-badge">4</span> Documents &amp; Motivation</h2>
+
+        <div class="form-group full-width">
+          <label for="coverLetter">Lettre de motivation <span class="required">*</span></label>
+          <textarea id="coverLetter" name="coverLetter" rows="6" placeholder="Expliquez pourquoi vous souhaitez rejoindre notre équipe et ce que vous apporteriez..." required></textarea>
+          <span class="error-msg"></span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cv">Curriculum Vitae (PDF) <span class="required">*</span></label>
+            <div class="file-upload-wrapper">
+              <input type="file" id="cv" name="cv" accept=".pdf,.doc,.docx" required />
+              <div class="file-upload-display">
+                <span class="file-icon">&#128196;</span>
+                <span class="file-text">Glissez votre CV ici ou cliquez pour parcourir</span>
+                <span class="file-hint">PDF, DOC ou DOCX – max. 5 Mo</span>
+              </div>
+            </div>
+            <span class="error-msg"></span>
+          </div>
+          <div class="form-group">
+            <label for="portfolio">Portfolio / Lettre (optionnel)</label>
+            <div class="file-upload-wrapper">
+              <input type="file" id="portfolio" name="portfolio" accept=".pdf,.zip,.doc,.docx" />
+              <div class="file-upload-display">
+                <span class="file-icon">&#128193;</span>
+                <span class="file-text">Glissez un fichier ou cliquez</span>
+                <span class="file-hint">PDF, ZIP – max. 10 Mo</span>
+              </div>
+            </div>
+            <span class="error-msg"></span>
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Comment avez-vous connu notre offre ?</label>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" name="source" value="linkedin" /> LinkedIn</label>
+            <label class="radio-label"><input type="radio" name="source" value="indeed" /> Indeed</label>
+            <label class="radio-label"><input type="radio" name="source" value="site" /> Site officiel</label>
+            <label class="radio-label"><input type="radio" name="source" value="recommandation" /> Recommandation</label>
+            <label class="radio-label"><input type="radio" name="source" value="autre" /> Autre</label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Étape 5 : Références & Consentement -->
+      <section class="form-section" id="step-5">
+        <h2><span class="step-badge">5</span> Références &amp; Consentement</h2>
+
+        <div class="form-group full-width">
+          <label for="references">Références professionnelles</label>
+          <textarea id="references" name="references" rows="3" placeholder="Nom, poste, entreprise et coordonnées de vos références (optionnel)..."></textarea>
+          <span class="error-msg"></span>
+        </div>
+
+        <div class="form-group full-width consent-group">
+          <label class="checkbox-label consent">
+            <input type="checkbox" id="gdprConsent" name="gdprConsent" required />
+            <span>J'accepte que mes données personnelles soient utilisées dans le cadre du processus de recrutement, conformément au RGPD. Mes informations ne seront pas transmises à des tiers. <span class="required">*</span></span>
+          </label>
+          <span class="error-msg" id="gdpr-error"></span>
+        </div>
+
+        <div class="form-group full-width consent-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="certifyInfo" name="certifyInfo" required />
+            <span>Je certifie que les informations fournies sont exactes et complètes. <span class="required">*</span></span>
+          </label>
+          <span class="error-msg" id="certify-error"></span>
+        </div>
+      </section>
+
+      <!-- Boutons d'action -->
+      <div class="form-actions">
+        <button type="button" id="resetBtn" class="btn btn-secondary">&#8635; Réinitialiser</button>
+        <button type="submit" class="btn btn-primary">Envoyer ma candidature &#10140;</button>
+      </div>
+    </form>
+
+    <!-- Message de succès -->
+    <div id="successMessage" class="success-message hidden">
+      <div class="success-icon">&#10003;</div>
+      <h2>Candidature envoyée avec succès !</h2>
+      <p>Merci <strong id="successName"></strong> pour votre candidature. Notre équipe RH examinera votre dossier et vous contactera dans les meilleurs délais.</p>
+      <button class="btn btn-primary" onclick="location.reload()">Soumettre une nouvelle candidature</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
