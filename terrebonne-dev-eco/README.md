@@ -28,6 +28,11 @@ gestion avec indicateurs et export CSV.
 
 ## Démarrage
 
+**Prérequis : Node.js 22.5 ou plus récent** (le module SQLite intégré à Node
+est utilisé — aucune compilation native, aucun outil supplémentaire à
+installer). Téléchargez la version LTS sur [nodejs.org](https://nodejs.org)
+si besoin, puis vérifiez avec `node -v`.
+
 ```bash
 npm install
 npm start
@@ -36,6 +41,20 @@ npm start
 Le serveur démarre sur `http://localhost:3000` (configurable via `PORT`). Au
 premier démarrage, la base de données SQLite est créée automatiquement dans
 `data/` et pré-remplie avec des données de démonstration.
+
+### Dépannage
+
+- **`'npm' n'est pas reconnu...`** — Node.js n'est pas installé ou pas dans le
+  PATH. Installez-le depuis [nodejs.org](https://nodejs.org) (version LTS),
+  puis fermez et rouvrez votre terminal.
+- **`Cannot find module '...'`** au démarrage — `npm install` n'a pas terminé
+  avec succès dans ce dossier. Relancez-le et vérifiez qu'un dossier
+  `node_modules` apparaît, sans message d'erreur.
+- **Erreurs `node-gyp` / `Python` / `better-sqlite3`** — ne devraient plus
+  survenir avec cette version de l'application (elle n'utilise plus aucun
+  module nécessitant une compilation native). Si vous voyez encore ce type
+  d'erreur, assurez-vous d'avoir bien la dernière version du code
+  (`git pull`) et que `package.json` ne mentionne pas `better-sqlite3`.
 
 ### Comptes de démonstration
 
@@ -61,9 +80,10 @@ secrète avant tout déploiement réel.
 
 ## Architecture technique
 
-- **Backend** : Node.js / Express, base de données SQLite (`better-sqlite3`),
-  sessions via `express-session`, mots de passe hachés avec `bcryptjs`,
-  en-têtes de sécurité via `helmet`, limitation de débit sur la connexion.
+- **Backend** : Node.js / Express, base de données SQLite via le module natif
+  `node:sqlite` (aucune dépendance à compiler), sessions via `express-session`,
+  mots de passe hachés avec `bcryptjs`, en-têtes de sécurité via `helmet`,
+  limitation de débit sur la connexion.
 - **Frontend** : application monopage en JavaScript natif (modules ES), sans
   framework ni étape de compilation. Graphiques via Chart.js (fourni localement
   dans `public/js/vendor/`, aucune dépendance externe au chargement).

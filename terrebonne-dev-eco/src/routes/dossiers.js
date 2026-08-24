@@ -161,7 +161,20 @@ router.put('/:id', requireRole('admin', 'gestionnaire'), (req, res) => {
       date_ouverture=@date_ouverture, date_echeance=@date_echeance, description=@description,
       updated_at=datetime('now')
     WHERE id=@id
-  `).run({ ...merged, id: req.params.id });
+  `).run({
+    titre: merged.titre,
+    type: merged.type,
+    entreprise_id: merged.entreprise_id,
+    responsable_id: merged.responsable_id,
+    statut: merged.statut,
+    priorite: merged.priorite,
+    montant_demande: merged.montant_demande,
+    montant_accorde: merged.montant_accorde,
+    date_ouverture: merged.date_ouverture,
+    date_echeance: merged.date_echeance,
+    description: merged.description,
+    id: req.params.id,
+  });
 
   const dossier = db.prepare('SELECT * FROM dossiers WHERE id = ?').get(req.params.id);
   res.json({ dossier });

@@ -102,7 +102,18 @@ router.put('/:id', requireRole('admin', 'gestionnaire'), (req, res) => {
       courriel=@courriel, site_web=@site_web, nb_employes=@nb_employes, statut=@statut, notes=@notes,
       updated_at=datetime('now')
     WHERE id=@id
-  `).run({ ...merged, id: req.params.id });
+  `).run({
+    nom: merged.nom,
+    secteur: merged.secteur,
+    adresse: merged.adresse,
+    telephone: merged.telephone,
+    courriel: merged.courriel,
+    site_web: merged.site_web,
+    nb_employes: merged.nb_employes,
+    statut: merged.statut,
+    notes: merged.notes,
+    id: req.params.id,
+  });
 
   const entreprise = db.prepare('SELECT * FROM entreprises WHERE id = ?').get(req.params.id);
   res.json({ entreprise });
