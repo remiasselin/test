@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Développement économique — Ville de Terrebonne</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<!-- ===================== ECRAN DE CONNEXION ===================== -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-backdrop"></div>
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-crest">DE</div>
+      <h1>Développement économique</h1>
+      <p>Ville de Terrebonne — Portail de gestion interne</p>
+    </div>
+
+    <form id="loginForm" class="login-form" novalidate>
+      <div class="field">
+        <label for="loginEmail">Courriel professionnel</label>
+        <input type="email" id="loginEmail" name="email" autocomplete="username" placeholder="prenom.nom@terrebonne.qc.ca" required />
+      </div>
+      <div class="field">
+        <label for="loginPassword">Mot de passe</label>
+        <input type="password" id="loginPassword" name="password" autocomplete="current-password" placeholder="••••••••" required />
+      </div>
+      <p id="loginError" class="login-error hidden"></p>
+      <button type="submit" class="btn btn-primary btn-block" id="loginSubmit">Se connecter</button>
+    </form>
+
+    <div class="login-demo">
+      <p>Comptes de démonstration</p>
+      <ul>
+        <li><strong>Admin</strong> — admin@terrebonne.qc.ca / Admin2026!</li>
+        <li><strong>Gestionnaire</strong> — mtremblay@terrebonne.qc.ca / Gestion2026!</li>
+        <li><strong>Lecteur</strong> — proy@terrebonne.qc.ca / Lecture2026!</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APPLICATION ===================== -->
+<div id="appShell" class="app-shell hidden">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-crest">DE</div>
+      <div class="brand-text">
+        <strong>Développement économique</strong>
+        <span>Ville de Terrebonne</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" id="sidebarNav">
+      <a href="#/tableau-de-bord" data-route="tableau-de-bord"><span class="nav-icon">◈</span>Tableau de bord</a>
+      <a href="#/dossiers" data-route="dossiers"><span class="nav-icon">▤</span>Dossiers</a>
+      <a href="#/entreprises" data-route="entreprises"><span class="nav-icon">▣</span>Entreprises</a>
+      <a href="#/rapports" data-route="rapports"><span class="nav-icon">◫</span>Rapports de gestion</a>
+      <a href="#/utilisateurs" data-route="utilisateurs" id="navUtilisateurs"><span class="nav-icon">◉</span>Utilisateurs</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <p>&copy; <span id="currentYear"></span> Ville de Terrebonne</p>
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <header class="topbar">
+      <button class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Menu">☰</button>
+      <h2 id="pageTitle">Tableau de bord</h2>
+      <div class="topbar-user">
+        <div class="user-chip">
+          <span class="user-avatar" id="userAvatar">--</span>
+          <span class="user-info">
+            <strong id="userName">—</strong>
+            <span id="userRole">—</span>
+          </span>
+        </div>
+        <button class="btn btn-ghost" id="logoutBtn">Déconnexion</button>
+      </div>
+    </header>
+
+    <main class="content" id="content">
+      <!-- Les vues sont injectées ici par le routeur -->
+    </main>
+  </div>
+</div>
+
+<div id="toastHost" class="toast-host"></div>
+
+<script src="/js/vendor/chart.umd.js"></script>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>
