@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portail citoyen — Suivi des requêtes</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --surface-2:      #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6;
+    --series-1-wash:  rgba(42,120,214,0.10);
+    --good:           #0ca30c;
+    --warning:        #fab219;
+    --critical:       #d03b3b;
+    --muted-fill:     #c3c2b7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --surface-2:      #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --series-1-wash:  rgba(57,135,229,0.14);
+      --good:           #0ca30c;
+      --warning:        #fab219;
+      --critical:       #e66767;
+      --muted-fill:     #383835;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --surface-2:      #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --series-1-wash:  rgba(57,135,229,0.14);
+    --good:           #0ca30c;
+    --warning:        #fab219;
+    --critical:       #e66767;
+    --muted-fill:     #383835;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root {
+    background: var(--surface-2);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 28px 32px 56px;
+    min-height: 100vh;
+  }
+  .page-head { max-width: 1180px; margin: 0 auto 22px; }
+  .page-head h1 { font-size: 22px; margin: 0 0 4px; font-weight: 700; }
+  .page-head p { margin: 0; color: var(--text-secondary); font-size: 13.5px; }
+  .container { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px 20px;
+  }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .card-title { font-size: 14.5px; font-weight: 600; margin: 0; }
+  .card-sub { font-size: 12px; color: var(--text-muted); margin: 2px 0 0; max-width: 62ch; }
+  .card-actions { display: flex; gap: 8px; align-items: center; }
+
+  .btn {
+    font: inherit; font-size: 12px; color: var(--text-secondary);
+    background: transparent; border: 1px solid var(--border); border-radius: 7px;
+    padding: 5px 10px; cursor: pointer;
+  }
+  .btn:hover { background: var(--series-1-wash); color: var(--text-primary); }
+  .btn.active { background: var(--series-1); color: #fff; border-color: var(--series-1); }
+
+  select.filter {
+    font: inherit; font-size: 13px; color: var(--text-primary);
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 7px;
+    padding: 6px 10px; cursor: pointer; max-width: 320px;
+  }
+
+  .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .filter-row label { font-size: 12.5px; color: var(--text-secondary); }
+
+  /* KPI tiles */
+  .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .kpi .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+  .kpi .value { font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .kpi .value small { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+  .kpi .note { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* two-up grid for monthly charts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* bar rows (category / subcategory) */
+  .bar-list { display: flex; flex-direction: column; gap: 3px; }
+  .bar-row {
+    display: grid; grid-template-columns: 200px 1fr 64px; align-items: center; gap: 10px;
+    padding: 5px 4px; border-radius: 6px; cursor: pointer; position: relative;
+  }
+  .bar-row:hover, .bar-row:focus-visible { background: var(--series-1-wash); outline: none; }
+  .bar-row .lbl {
+    font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bar-row.selected .lbl { color: var(--text-primary); font-weight: 600; }
+  .bar-track { position: relative; height: 20px; background: transparent; }
+  .bar-fill {
+    position: absolute; left: 0; top: 2px; height: 16px; border-radius: 4px 4px 4px 4px;
+    background: var(--series-1); min-width: 3px;
+  }
+  .bar-row.selected .bar-fill { background: var(--series-1); box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 3px var(--series-1); }
+  .bar-row .val { font-size: 12.5px; color: var(--text-primary); text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* legend */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--text-secondary); }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+  .legend-line { width: 14px; height: 2px; border-radius: 1px; flex: none; }
+
+  /* SLA stacked bar */
+  .stack-bar { display: flex; width: 100%; height: 26px; border-radius: 6px; overflow: hidden; background: var(--grid); }
+  .stack-seg { height: 100%; }
+  .stack-seg + .stack-seg { margin-left: 2px; }
+
+  /* tooltip */
+  #viz-tooltip {
+    position: fixed; pointer-events: none; z-index: 1000;
+    background: var(--text-primary); color: var(--surface-1);
+    font-size: 12px; line-height: 1.45; padding: 8px 10px; border-radius: 8px;
+    max-width: 260px; opacity: 0; transform: translate(-9999px, -9999px);
+    transition: opacity 0.08s ease;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.22);
+  }
+  #viz-tooltip .tt-title { font-weight: 700; margin-bottom: 3px; }
+  #viz-tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; }
+  #viz-tooltip .tt-row .tt-val { font-weight: 700; }
+  #viz-tooltip .tt-row .tt-key { color: var(--baseline); }
+
+  table.data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.data-table th, table.data-table td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--grid); }
+  table.data-table th:first-child, table.data-table td:first-child { text-align: left; }
+  table.data-table th { color: var(--text-secondary); font-weight: 600; }
+  table.data-table td { font-variant-numeric: tabular-nums; }
+  .table-wrap { max-height: 420px; overflow: auto; }
+
+  .hidden { display: none !important; }
+  .foot-note { max-width: 1180px; margin: 6px auto 0; font-size: 11.5px; color: var(--text-muted); }
+
+  svg text { fill: var(--text-muted); font-size: 11px; }
+  .axis-line { stroke: var(--baseline); stroke-width: 1; }
+  .grid-line { stroke: var(--grid); stroke-width: 1; }
+  .trend-line { fill: none; stroke: var(--series-1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .trend-dot { fill: var(--series-1); stroke: var(--surface-1); stroke-width: 2; }
+  .trend-area { fill: var(--series-1); opacity: 0.10; }
+  .caveat-band { fill: var(--text-muted); opacity: 0.08; }
+  .bar-mark { fill: var(--series-1); }
+  .bar-mark:hover { fill: var(--series-1); filter: brightness(1.12); }
+</style>
+</head>
+<body>
+
+<div class="viz-root">
+  <div class="page-head">
+    <h1>Portail citoyen — Suivi des requêtes</h1>
+    <p id="head-sub"></p>
+  </div>
+
+  <div class="container">
+
+    <div class="kpis" id="kpi-row"></div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Statut par rapport aux délais (SLA)</h2>
+          <p class="card-sub">Répartition de l'ensemble des requêtes selon le champ « Statut Résolution 2e Ligne » du CRM.</p>
+        </div>
+      </div>
+      <div class="stack-bar" id="sla-bar"></div>
+      <div class="legend" id="sla-legend"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Volume de requêtes créées par mois</h2>
+            <p class="card-sub">Nombre de requêtes ouvertes, par mois de création.</p>
+          </div>
+          <div class="card-actions">
+            <button class="btn" data-toggle="volume-table">Tableau</button>
+          </div>
+        </div>
+        <div id="volume-chart"></div>
+        <div id="volume-table" class="hidden table-wrap"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Évolution du délai moyen de traitement</h2>
+            <p class="card-sub">Délai moyen (jours) entre création et fermeture, par mois de création. Zone grisée : période non fiable (migration du système le 10 déc. 2024). Les derniers mois peuvent être sous-estimés — les requêtes encore actives n'y sont pas encore comptées.</p>
+          </div>
+          <div class="card-actions">
+            <button class="btn" data-toggle="delay-table">Tableau</button>
+          </div>
+        </div>
+        <div id="delay-chart"></div>
+        <div id="delay-table" class="hidden table-wrap"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Requêtes par catégorie (thème)</h2>
+          <p class="card-sub">Cliquez une catégorie pour filtrer les sous-catégories ci-dessous.</p>
+        </div>
+        <div class="card-actions">
+          <button class="btn" data-toggle="category-table">Tableau</button>
+        </div>
+      </div>
+      <div class="bar-list" id="category-chart"></div>
+      <div id="category-table" class="hidden table-wrap"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Requêtes par sous-catégorie</h2>
+          <p class="card-sub" id="subcat-sub">Toutes catégories — 15 sous-catégories les plus fréquentes.</p>
+        </div>
+        <div class="card-actions">
+          <div class="filter-row">
+            <label for="cat-select">Catégorie</label>
+            <select class="filter" id="cat-select"></select>
+          </div>
+          <button class="btn" data-toggle="subcategory-table">Tableau</button>
+        </div>
+      </div>
+      <div class="bar-list" id="subcategory-chart"></div>
+      <div id="subcategory-table" class="hidden table-wrap"></div>
+    </div>
+
+  </div>
+
+  <p class="foot-note" id="foot-note"></p>
+</div>
+
+<div id="viz-tooltip"></div>
+
+<script>
+const DATA = {"kpis":{"total_requests":100000,"active_requests":2151,"avg_delay_days":36.2,"median_delay_days":0.2,"pct_on_time":94.5,"pct_late":3.2,"reliable_since":"2024-12-10","data_from":"2024-09-27","data_to":"2026-08-26","generated_at":"2026-08-26 15:32:49"},
+"monthly_trend":[{"month":"2024-09","count":553,"avg_delay":null},{"month":"2024-10","count":5524,"avg_delay":null},{"month":"2024-11","count":4379,"avg_delay":null},{"month":"2024-12","count":2922,"avg_delay":15.2},{"month":"2025-01","count":4015,"avg_delay":13.0},{"month":"2025-02","count":4355,"avg_delay":8.9},{"month":"2025-03","count":4684,"avg_delay":12.5},{"month":"2025-04","count":4378,"avg_delay":14.5},{"month":"2025-05","count":6123,"avg_delay":14.0},{"month":"2025-06","count":4740,"avg_delay":84.8},{"month":"2025-07","count":4621,"avg_delay":142.7},{"month":"2025-08","count":3783,"avg_delay":122.8},{"month":"2025-09","count":4353,"avg_delay":92.7},{"month":"2025-10","count":4717,"avg_delay":75.3},{"month":"2025-11","count":3626,"avg_delay":56.2},{"month":"2025-12","count":2602,"avg_delay":35.6},{"month":"2026-01","count":3596,"avg_delay":13.9},{"month":"2026-02","count":4134,"avg_delay":6.1},{"month":"2026-03","count":4650,"avg_delay":6.8},{"month":"2026-04","count":4242,"avg_delay":9.8},{"month":"2026-05","count":4635,"avg_delay":10.2},{"month":"2026-06","count":4868,"avg_delay":10.5},{"month":"2026-07","count":4855,"avg_delay":6.7},{"month":"2026-08","count":3645,"avg_delay":2.4}],
+"by_category":[{"category":"Service citoyen","count":20199,"avg_delay":8.0,"pct_on_time":99.5,"pct_late":0.1},{"category":"Permis, certificats et règlements","count":17640,"avg_delay":31.6,"pct_on_time":99.2,"pct_late":0.0},{"category":"Collecte","count":10510,"avg_delay":40.5,"pct_on_time":98.2,"pct_late":0.5},{"category":"Administration et finances","count":10330,"avg_delay":32.6,"pct_on_time":99.9,"pct_late":0.0},{"category":"Voie publique","count":8047,"avg_delay":60.1,"pct_on_time":91.7,"pct_late":4.5},{"category":"Contenant","count":7334,"avg_delay":63.3,"pct_on_time":50.4,"pct_late":37.1},{"category":"Eau","count":6318,"avg_delay":66.0,"pct_on_time":96.9,"pct_late":0.0},{"category":"Parcs et espaces verts","count":3707,"avg_delay":62.3,"pct_on_time":93.7,"pct_late":0.2},{"category":"Vie communautaire","count":3383,"avg_delay":39.5,"pct_on_time":99.6,"pct_late":0.0},{"category":"Subvention","count":2479,"avg_delay":35.6,"pct_on_time":95.8,"pct_late":0.0},{"category":"Accès à l'information","count":1844,"avg_delay":25.1,"pct_on_time":95.7,"pct_late":1.9},{"category":"Cour municipale/tribunal","count":1827,"avg_delay":15.4,"pct_on_time":99.8,"pct_late":0.0},{"category":"Projets","count":1784,"avg_delay":56.0,"pct_on_time":98.1,"pct_late":0.0},{"category":"Déneigement","count":1752,"avg_delay":21.2,"pct_on_time":97.0,"pct_late":0.0},{"category":"Sécurité publique","count":1604,"avg_delay":20.7,"pct_on_time":99.6,"pct_late":0.0},{"category":"Réclamations","count":1045,"avg_delay":33.6,"pct_on_time":93.0,"pct_late":1.3},{"category":"Service entreprise","count":139,"avg_delay":54.7,"pct_on_time":98.6,"pct_late":0.0}],
+"by_subcategory":[{"category":"Permis, certificats et règlements","subcategory":"URB - Tous les règlements, permis, certifications","count":14334,"avg_delay":30.3,"pct_on_time":99.2,"pct_late":0.0},{"category":"Service citoyen","subcategory":"Services administratifs","count":10066,"avg_delay":4.0,"pct_on_time":99.9,"pct_late":0.0},{"category":"Administration et finances","subcategory":"Taxation","count":9649,"avg_delay":33.3,"pct_on_time":99.9,"pct_late":0.0},{"category":"Service citoyen","subcategory":"Informations générales","count":4722,"avg_delay":4.9,"pct_on_time":99.3,"pct_late":0.0},{"category":"Service citoyen","subcategory":"Assermentation","count":3844,"avg_delay":15.7,"pct_on_time":100.0,"pct_late":0.0},{"category":"Voie publique","subcategory":"Chaussée","count":3643,"avg_delay":53.7,"pct_on_time":88.0,"pct_late":8.4},{"category":"Contenant","subcategory":"Bac de déchets","count":3618,"avg_delay":67.3,"pct_on_time":49.2,"pct_late":38.0},{"category":"Collecte","subcategory":"Encombrants","count":3004,"avg_delay":25.8,"pct_on_time":98.2,"pct_late":0.6},{"category":"Vie communautaire","subcategory":"Activités récreatives","count":2601,"avg_delay":39.8,"pct_on_time":99.6,"pct_late":0.0},{"category":"Contenant","subcategory":"Bac de recyclage","count":2461,"avg_delay":58.6,"pct_on_time":49.8,"pct_late":38.5},{"category":"Parcs et espaces verts","subcategory":"Arbres","count":2177,"avg_delay":57.9,"pct_on_time":92.3,"pct_late":0.3},{"category":"Eau","subcategory":"Boite de service","count":1916,"avg_delay":69.0,"pct_on_time":95.9,"pct_late":0.0},{"category":"Accès à l'information","subcategory":"Ville - Autre document","count":1803,"avg_delay":25.1,"pct_on_time":95.7,"pct_late":1.9},{"category":"Cour municipale/tribunal","subcategory":"Contravention","count":1775,"avg_delay":15.0,"pct_on_time":99.8,"pct_late":0.0},{"category":"Voie publique","subcategory":"Éclairage","count":1705,"avg_delay":59.3,"pct_on_time":97.2,"pct_late":0.0},{"category":"Collecte","subcategory":"Déchets","count":1673,"avg_delay":43.0,"pct_on_time":97.5,"pct_late":0.7},{"category":"Sécurité publique","subcategory":"Police","count":1465,"avg_delay":18.7,"pct_on_time":99.6,"pct_late":0.0},{"category":"Collecte","subcategory":"Matières organiques","count":1390,"avg_delay":43.8,"pct_on_time":98.0,"pct_late":0.5},{"category":"Collecte","subcategory":"Récupération - Matières recyclables","count":1342,"avg_delay":60.3,"pct_on_time":98.1,"pct_late":0.1},{"category":"Collecte","subcategory":"Lieu de dépôt","count":1155,"avg_delay":49.0,"pct_on_time":100.0,"pct_late":0.0},{"category":"Déneigement","subcategory":"Opérations","count":1121,"avg_delay":21.3,"pct_on_time":96.8,"pct_late":0.0},{"category":"Collecte","subcategory":"Conteneurs","count":1083,"avg_delay":36.6,"pct_on_time":97.1,"pct_late":1.3},{"category":"Permis, certificats et règlements","subcategory":"HYG - Arrosage - permis longue durée","count":1076,"avg_delay":43.0,"pct_on_time":99.9,"pct_late":0.0},{"category":"Eau","subcategory":"Puisard","count":1055,"avg_delay":69.6,"pct_on_time":98.0,"pct_late":0.0},{"category":"Réclamations","subcategory":"Opérations ville","count":1031,"avg_delay":33.3,"pct_on_time":92.9,"pct_late":1.4},{"category":"Contenant","subcategory":"Bac d'organiques","count":941,"avg_delay":61.3,"pct_on_time":55.5,"pct_late":29.0},{"category":"Eau","subcategory":"Aqueduc","count":810,"avg_delay":38.1,"pct_on_time":96.7,"pct_late":0.0},{"category":"Collecte","subcategory":"Collecte spéciale","count":667,"avg_delay":46.4,"pct_on_time":98.5,"pct_late":0.0},{"category":"Projets","subcategory":"Projets du Génie","count":647,"avg_delay":64.4,"pct_on_time":98.5,"pct_late":0.0},{"category":"Déneigement","subcategory":"Service","count":631,"avg_delay":21.0,"pct_on_time":97.3,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementales - Borne de recharge résidentielle","count":630,"avg_delay":26.2,"pct_on_time":98.7,"pct_late":0.0},{"category":"Projets","subcategory":"Chantiers et travaux","count":579,"avg_delay":65.8,"pct_on_time":98.6,"pct_late":0.0},{"category":"Vie communautaire","subcategory":"Art, culture, bibliothèque","count":563,"avg_delay":48.7,"pct_on_time":100.0,"pct_late":0.0},{"category":"Projets","subcategory":"Comité de circulation","count":558,"avg_delay":36.6,"pct_on_time":97.1,"pct_late":0.0},{"category":"Service citoyen","subcategory":"Dotation en personnel :  emploi, stage","count":515,"avg_delay":12.7,"pct_on_time":99.8,"pct_late":0.0},{"category":"Eau","subcategory":"Infrastructures","count":514,"avg_delay":73.2,"pct_on_time":98.1,"pct_late":0.0},{"category":"Voie publique","subcategory":"Fossé","count":506,"avg_delay":93.0,"pct_on_time":97.8,"pct_late":0.0},{"category":"Eau","subcategory":"Borne-fontaine","count":476,"avg_delay":59.5,"pct_on_time":96.2,"pct_late":0.4},{"category":"Eau","subcategory":"Égouts","count":436,"avg_delay":111.1,"pct_on_time":96.1,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementales - Outils de jardin écoresponsables","count":414,"avg_delay":35.9,"pct_on_time":97.8,"pct_late":0.0},{"category":"Eau","subcategory":"Eau potable","count":413,"avg_delay":55.0,"pct_on_time":99.0,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"HYG - Arrosage - permis temporaire","count":402,"avg_delay":53.3,"pct_on_time":100.0,"pct_late":0.0},{"category":"Parcs et espaces verts","subcategory":"Terrain du parc","count":396,"avg_delay":64.0,"pct_on_time":95.7,"pct_late":0.0},{"category":"Voie publique","subcategory":"Bordure","count":387,"avg_delay":44.7,"pct_on_time":96.9,"pct_late":0.0},{"category":"Voie publique","subcategory":"Terrain","count":386,"avg_delay":89.3,"pct_on_time":92.7,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"BDC - Animaux de compagnie","count":374,"avg_delay":15.5,"pct_on_time":98.4,"pct_late":0.0},{"category":"Voie publique","subcategory":"Feux de circulation","count":363,"avg_delay":45.2,"pct_on_time":90.4,"pct_late":0.3},{"category":"Administration et finances","subcategory":"Évaluation foncière","count":358,"avg_delay":17.6,"pct_on_time":100.0,"pct_late":0.0},{"category":"Eau","subcategory":"Compteur d'eau","count":351,"avg_delay":48.0,"pct_on_time":98.6,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"BDC - Stationnement hivernal","count":322,"avg_delay":13.5,"pct_on_time":99.1,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"HYG - Arrosage","count":321,"avg_delay":48.9,"pct_on_time":99.7,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"ENV - Tous les règlements, permis, certifications","count":314,"avg_delay":43.0,"pct_on_time":97.5,"pct_late":0.0},{"category":"Subvention","subcategory":"Arbres - Je reverdis ma rue","count":284,"avg_delay":62.2,"pct_on_time":87.3,"pct_late":0.0},{"category":"Service citoyen","subcategory":"Outils de communication et téléphonie","count":267,"avg_delay":32.1,"pct_on_time":85.0,"pct_late":5.2},{"category":"Contenant","subcategory":"Bacs multiples","count":257,"avg_delay":58.9,"pct_on_time":49.8,"pct_late":44.4},{"category":"Subvention","subcategory":"Autres subventions","count":237,"avg_delay":18.0,"pct_on_time":100.0,"pct_late":0.0},{"category":"Voie publique","subcategory":"Ponceau","count":228,"avg_delay":87.1,"pct_on_time":96.5,"pct_late":0.0},{"category":"Administration et finances","subcategory":"Approvisionnement","count":223,"avg_delay":21.5,"pct_on_time":99.6,"pct_late":0.0},{"category":"Service citoyen","subcategory":"Cabinet du maire","count":210,"avg_delay":24.1,"pct_on_time":99.5,"pct_late":0.0},{"category":"Service citoyen","subcategory":"Communications citoyennes","count":201,"avg_delay":27.6,"pct_on_time":95.0,"pct_late":0.5},{"category":"Vie communautaire","subcategory":"Soutien organisationnel","count":195,"avg_delay":13.8,"pct_on_time":99.0,"pct_late":0.0},{"category":"Parcs et espaces verts","subcategory":"Éclairage","count":184,"avg_delay":90.3,"pct_on_time":95.1,"pct_late":0.0},{"category":"Voie publique","subcategory":"Stationnement","count":182,"avg_delay":28.3,"pct_on_time":94.5,"pct_late":2.7},{"category":"Voie publique","subcategory":"Élements de sécurité routière","count":180,"avg_delay":70.5,"pct_on_time":74.4,"pct_late":19.4},{"category":"Parcs et espaces verts","subcategory":"Jeux d'eau","count":173,"avg_delay":81.0,"pct_on_time":98.8,"pct_late":0.0},{"category":"Service citoyen","subcategory":"Événements","count":165,"avg_delay":12.3,"pct_on_time":99.4,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"INC - Prévention incendies","count":162,"avg_delay":28.9,"pct_on_time":98.8,"pct_late":0.0},{"category":"Parcs et espaces verts","subcategory":"Jeux","count":155,"avg_delay":89.6,"pct_on_time":95.5,"pct_late":0.0},{"category":"Parcs et espaces verts","subcategory":"Patinoire","count":151,"avg_delay":18.4,"pct_on_time":99.3,"pct_late":0.0},{"category":"Voie publique","subcategory":"Piste cyclable","count":142,"avg_delay":68.2,"pct_on_time":88.7,"pct_late":8.5},{"category":"Service entreprise","subcategory":"Développement économique","count":139,"avg_delay":54.7,"pct_on_time":98.6,"pct_late":0.0},{"category":"Service citoyen","subcategory":"Élections","count":131,"avg_delay":21.9,"pct_on_time":100.0,"pct_late":0.0},{"category":"Sécurité publique","subcategory":"Incendie","count":131,"avg_delay":39.0,"pct_on_time":100.0,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementales - Produits hygiène féminine lavables","count":128,"avg_delay":32.0,"pct_on_time":93.8,"pct_late":0.0},{"category":"Parcs et espaces verts","subcategory":"Mobilier urbain","count":126,"avg_delay":77.6,"pct_on_time":90.5,"pct_late":0.0},{"category":"Eau","subcategory":"Regard","count":122,"avg_delay":109.7,"pct_on_time":95.9,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementales - Installation de clapets antiretour et pompes à puisard","count":116,"avg_delay":46.7,"pct_on_time":96.6,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementale - Installations septiques","count":115,"avg_delay":43.6,"pct_on_time":97.4,"pct_late":0.0},{"category":"Parcs et espaces verts","subcategory":"Infrastructures","count":112,"avg_delay":63.2,"pct_on_time":90.2,"pct_late":0.0},{"category":"Collecte","subcategory":"RDD-TIC","count":102,"avg_delay":34.0,"pct_on_time":100.0,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"GRE - Tous les règlements, permis, certifications","count":101,"avg_delay":40.0,"pct_on_time":99.0,"pct_late":0.0},{"category":"Administration et finances","subcategory":"Comptes payables","count":100,"avg_delay":41.6,"pct_on_time":100.0,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementales - Carte Opus 65+","count":97,"avg_delay":23.4,"pct_on_time":95.9,"pct_late":0.0},{"category":"Collecte","subcategory":"Don d'articles usagés","count":94,"avg_delay":45.3,"pct_on_time":97.9,"pct_late":0.0},{"category":"Subvention","subcategory":"Arbres - Remplacement des arbres privés abattus","count":90,"avg_delay":41.2,"pct_on_time":86.7,"pct_late":0.0},{"category":"Voie publique","subcategory":"Îlot, rond-point ou terre-plein central","count":90,"avg_delay":83.6,"pct_on_time":96.7,"pct_late":1.1},{"category":"Parcs et espaces verts","subcategory":"Plateau sportif","count":90,"avg_delay":67.9,"pct_on_time":97.8,"pct_late":0.0},{"category":"Parcs et espaces verts","subcategory":"Contenants","count":78,"avg_delay":68.2,"pct_on_time":97.4,"pct_late":0.0},{"category":"Service citoyen","subcategory":"Conseils municipaux","count":77,"avg_delay":20.9,"pct_on_time":98.7,"pct_late":0.0},{"category":"Voie publique","subcategory":"Trottoir","count":76,"avg_delay":67.9,"pct_on_time":94.7,"pct_late":2.6},{"category":"Subvention","subcategory":"Environnementales - Bidets et accessoires sanitaires","count":70,"avg_delay":27.5,"pct_on_time":97.1,"pct_late":0.0},{"category":"Parcs et espaces verts","subcategory":"Élements de sécurité","count":65,"avg_delay":78.3,"pct_on_time":95.4,"pct_late":1.5},{"category":"Eau","subcategory":"Eaux usées","count":62,"avg_delay":57.3,"pct_on_time":96.8,"pct_late":0.0},{"category":"Subvention","subcategory":"Arbres - Traitement préventif et abattage de frênes","count":60,"avg_delay":58.3,"pct_on_time":96.7,"pct_late":0.0},{"category":"Voie publique","subcategory":"Cours d'eau","count":56,"avg_delay":77.6,"pct_on_time":83.9,"pct_late":0.0},{"category":"Contenant","subcategory":"Conteneurs","count":56,"avg_delay":61.7,"pct_on_time":69.6,"pct_late":23.2},{"category":"Cour municipale/tribunal","subcategory":"Présence en cour","count":52,"avg_delay":26.2,"pct_on_time":100.0,"pct_late":0.0},{"category":"Eau","subcategory":"Vanne de rue","count":50,"avg_delay":84.3,"pct_on_time":100.0,"pct_late":0.0},{"category":"Subvention","subcategory":"Arbres - Mes racines à Terrebonne","count":49,"avg_delay":41.3,"pct_on_time":91.8,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"INC - Permis de brûlage","count":45,"avg_delay":23.5,"pct_on_time":95.6,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementales - Récupération de l'eau de pluie","count":42,"avg_delay":40.7,"pct_on_time":95.2,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"GRE - Permis de colportage","count":42,"avg_delay":22.0,"pct_on_time":95.2,"pct_late":0.0},{"category":"Accès à l'information","subcategory":"Police","count":41,"avg_delay":19.9,"pct_on_time":95.1,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"ENV - Certificat d'application extérieure de pesticides","count":40,"avg_delay":21.0,"pct_on_time":90.0,"pct_late":0.0},{"category":"Voie publique","subcategory":"Sentier","count":39,"avg_delay":85.6,"pct_on_time":92.3,"pct_late":5.1},{"category":"Eau","subcategory":"Station de pompage","count":37,"avg_delay":62.0,"pct_on_time":97.3,"pct_late":0.0},{"category":"Voie publique","subcategory":"Accotement","count":36,"avg_delay":97.3,"pct_on_time":100.0,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"Foresterie - Permis d'abattage de Frênes","count":36,"avg_delay":16.0,"pct_on_time":97.2,"pct_late":0.0},{"category":"Eau","subcategory":"Réclamation","count":35,"avg_delay":null,"pct_on_time":100.0,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementales - Couches lavables","count":35,"avg_delay":30.9,"pct_on_time":94.3,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"BDC - Stationnement public","count":27,"avg_delay":7.9,"pct_on_time":100.0,"pct_late":0.0},{"category":"Eau","subcategory":"Drain français","count":26,"avg_delay":47.8,"pct_on_time":100.0,"pct_late":0.0},{"category":"Vie communautaire","subcategory":"Comité d'itinérance","count":24,"avg_delay":64.8,"pct_on_time":91.7,"pct_late":0.0},{"category":"Subvention","subcategory":"Arbres - Plantation communautaire et institutionnelle","count":23,"avg_delay":37.5,"pct_on_time":95.7,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementales - Conteneur Debby","count":22,"avg_delay":12.1,"pct_on_time":95.5,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"INC - Permis de feu d'artifice","count":21,"avg_delay":41.8,"pct_on_time":100.0,"pct_late":0.0},{"category":"Voie publique","subcategory":"Boîtes postales communautaires","count":15,"avg_delay":10.1,"pct_on_time":100.0,"pct_late":0.0},{"category":"Subvention","subcategory":"Arbres - Reboisement en bandes riveraines","count":14,"avg_delay":45.8,"pct_on_time":92.9,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementales - Appareil à combustible solide non certifié","count":14,"avg_delay":7.1,"pct_on_time":100.0,"pct_late":0.0},{"category":"Subvention","subcategory":"Arbres - Remplacement des frênes abattus","count":12,"avg_delay":7.6,"pct_on_time":91.7,"pct_late":0.0},{"category":"Réclamations","subcategory":"Fiducie Brady","count":12,"avg_delay":46.3,"pct_on_time":100.0,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"DTP - Assainissement des eaux","count":11,"avg_delay":8.6,"pct_on_time":81.8,"pct_late":0.0},{"category":"Voie publique","subcategory":"Abribus","count":9,"avg_delay":36.8,"pct_on_time":100.0,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementale  - Pelouse durable","count":9,"avg_delay":11.1,"pct_on_time":88.9,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"ENV - Installations septiques","count":8,"avg_delay":2.2,"pct_on_time":100.0,"pct_late":0.0},{"category":"Sécurité publique","subcategory":"Mesures d'urgence","count":8,"avg_delay":53.1,"pct_on_time":87.5,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementales - GMR – Objet à usage unique pour commerces","count":8,"avg_delay":44.9,"pct_on_time":75.0,"pct_late":0.0},{"category":"Eau","subcategory":"Eaux usées - Rejets industriels","count":5,"avg_delay":11.5,"pct_on_time":80.0,"pct_late":0.0},{"category":"Eau","subcategory":"Eaux usées - Pièges à matières grasses","count":5,"avg_delay":62.5,"pct_on_time":80.0,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementales - Papier hygiénique/mouchoirs lavables","count":4,"avg_delay":59.7,"pct_on_time":100.0,"pct_late":0.0},{"category":"Eau","subcategory":"Eaux usées - Séparateurs d'eau/huile","count":3,"avg_delay":2.1,"pct_on_time":66.7,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementales - Lame déchiqueteuse","count":3,"avg_delay":77.0,"pct_on_time":100.0,"pct_late":0.0},{"category":"Permis, certificats et règlements","subcategory":"URB - Tous les règlements, permis, certifications (OFFERT EN LIGNE)","count":3,"avg_delay":51.3,"pct_on_time":100.0,"pct_late":0.0},{"category":"Voie publique","subcategory":"Service","count":2,"avg_delay":116.9,"pct_on_time":100.0,"pct_late":0.0},{"category":"Voie publique","subcategory":"Réclamation","count":2,"avg_delay":null,"pct_on_time":100.0,"pct_late":0.0},{"category":"Eau","subcategory":"Service","count":1,"avg_delay":165.6,"pct_on_time":100.0,"pct_late":0.0},{"category":"Contenant","subcategory":"Service","count":1,"avg_delay":0.2,"pct_on_time":100.0,"pct_late":0.0},{"category":"Eau","subcategory":"Eaux usées - Séparateurs d'amalgame","count":1,"avg_delay":1.1,"pct_on_time":0.0,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementale - Autopartage","count":1,"avg_delay":0.2,"pct_on_time":0.0,"pct_late":0.0},{"category":"Subvention","subcategory":"Commerces et Industries -  Travaux de réhabilitation environnementale des surfaces imperméables","count":1,"avg_delay":20.7,"pct_on_time":100.0,"pct_late":0.0},{"category":"Subvention","subcategory":"Environnementales - Verdissement augmentant les surfaces perméables","count":1,"avg_delay":2.1,"pct_on_time":100.0,"pct_late":0.0}],
+"sla_overall":{"on_time":94456,"late":3212,"cancelled":1924,"suspended":408}};
+
+const MONTH_NAMES = {'01':'jan','02':'fév','03':'mar','04':'avr','05':'mai','06':'jun','07':'jul','08':'aoû','09':'sep','10':'oct','11':'nov','12':'déc'};
+function monthLabel(m) { const [y, mm] = m.split('-'); return MONTH_NAMES[mm] + ' ' + y.slice(2); }
+function fmtInt(n) { return n.toLocaleString('fr-CA'); }
+function fmtDelay(n) { return (n === null || n === undefined) ? '—' : (Math.round(n * 10) / 10).toLocaleString('fr-CA') + ' j'; }
+function fmtPct(n) { return (Math.round(n * 10) / 10).toLocaleString('fr-CA') + ' %'; }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ---------- tooltip ----------
+const tooltip = document.getElementById('viz-tooltip');
+function showTooltip(evt, titleText, rows) {
+  tooltip.innerHTML = '';
+  const t = document.createElement('div'); t.className = 'tt-title'; t.textContent = titleText;
+  tooltip.appendChild(t);
+  rows.forEach(([k, v]) => {
+    const row = document.createElement('div'); row.className = 'tt-row';
+    const kEl = document.createElement('span'); kEl.className = 'tt-key'; kEl.textContent = k;
+    const vEl = document.createElement('span'); vEl.className = 'tt-val'; vEl.textContent = v;
+    row.appendChild(kEl); row.appendChild(vEl);
+    tooltip.appendChild(row);
+  });
+  positionTooltip(evt);
+  tooltip.style.opacity = '1';
+}
+function positionTooltip(evt) {
+  const pad = 14;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  const rect = tooltip.getBoundingClientRect();
+  if (x + rect.width > window.innerWidth - 8) x = evt.clientX - rect.width - pad;
+  if (y + rect.height > window.innerHeight - 8) y = evt.clientY - rect.height - pad;
+  tooltip.style.transform = `translate(${x}px, ${y}px)`;
+}
+function hideTooltip() { tooltip.style.opacity = '0'; tooltip.style.transform = 'translate(-9999px,-9999px)'; }
+
+// ---------- KPI tiles ----------
+function renderKpis() {
+  const k = DATA.kpis;
+  const tiles = [
+    { label: 'Requêtes totales', value: fmtInt(k.total_requests), note: `du ${k.data_from} au ${k.data_to}` },
+    { label: 'Requêtes actives', value: fmtInt(k.active_requests), note: 'en cours de traitement' },
+    { label: 'Délai moyen de traitement', value: fmtDelay(k.avg_delay_days), note: `médiane ${fmtDelay(k.median_delay_days)} · depuis le ${k.reliable_since}` },
+    { label: 'Traitées dans les délais', value: fmtPct(k.pct_on_time), note: 'part de l’ensemble des requêtes' },
+    { label: 'Délai expiré', value: fmtPct(k.pct_late), note: 'part de l’ensemble des requêtes' },
+  ];
+  const row = document.getElementById('kpi-row');
+  tiles.forEach(t => {
+    const el = document.createElement('div'); el.className = 'kpi';
+    const l = document.createElement('div'); l.className = 'label'; l.textContent = t.label;
+    const v = document.createElement('div'); v.className = 'value'; v.textContent = t.value;
+    const n = document.createElement('div'); n.className = 'note'; n.textContent = t.note;
+    el.appendChild(l); el.appendChild(v); el.appendChild(n);
+    row.appendChild(el);
+  });
+  document.getElementById('head-sub').textContent =
+    `${fmtInt(k.total_requests)} requêtes · du ${k.data_from} au ${k.data_to} · données extraites le ${k.generated_at}`;
+  document.getElementById('foot-note').textContent =
+    `Source : export CRM (Dynamics) du portail citoyen. Les délais de traitement avant le ${k.reliable_since} ne sont pas fiables ` +
+    `(migration du système ce jour-là, qui a touché en bloc les requêtes plus anciennes) et sont exclus des calculs de délai. ` +
+    `Le statut « dans les délais / en retard » provient directement du champ SLA du CRM.`;
+}
+
+// ---------- SLA stacked bar ----------
+function renderSla() {
+  const sla = DATA.sla_overall;
+  const total = Object.values(sla).reduce((a, b) => a + b, 0);
+  const segs = [
+    { key: 'on_time', label: 'Dans les délais', color: 'var(--good)', count: sla.on_time || 0 },
+    { key: 'late', label: 'Délai expiré', color: 'var(--critical)', count: sla.late || 0 },
+    { key: 'suspended', label: 'Suspendu', color: 'var(--warning)', count: sla.suspended || 0 },
+    { key: 'cancelled', label: 'Annulé', color: 'var(--muted-fill)', count: sla.cancelled || 0 },
+  ];
+  const bar = document.getElementById('sla-bar');
+  segs.forEach(s => {
+    if (s.count <= 0) return;
+    const pct = s.count / total * 100;
+    const seg = document.createElement('div');
+    seg.className = 'stack-seg';
+    seg.style.width = pct + '%';
+    seg.style.background = s.color;
+    seg.tabIndex = 0;
+    seg.addEventListener('pointermove', e => showTooltip(e, s.label, [['Requêtes', fmtInt(s.count)], ['Part du total', fmtPct(pct)]]));
+    seg.addEventListener('pointerleave', hideTooltip);
+    seg.addEventListener('focus', e => showTooltip(e, s.label, [['Requêtes', fmtInt(s.count)], ['Part du total', fmtPct(pct)]]));
+    seg.addEventListener('blur', hideTooltip);
+    bar.appendChild(seg);
+  });
+  const legend = document.getElementById('sla-legend');
+  segs.forEach(s => {
+    if (s.count <= 0) return;
+    const item = document.createElement('div'); item.className = 'legend-item';
+    const sw = document.createElement('span'); sw.className = 'legend-swatch'; sw.style.background = s.color;
+    const txt = document.createElement('span'); txt.textContent = `${s.label} — ${fmtInt(s.count)} (${fmtPct(s.count/total*100)})`;
+    item.appendChild(sw); item.appendChild(txt);
+    legend.appendChild(item);
+  });
+}
+
+// ---------- generic bar-list (horizontal bars) ----------
+function renderBarList(containerId, items, opts) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  const max = Math.max(...items.map(i => i.count), 1);
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.tabIndex = 0;
+    if (opts.selectedKey && opts.keyOf(item) === opts.selectedKey) row.classList.add('selected');
+
+    const lbl = document.createElement('div'); lbl.className = 'lbl'; lbl.textContent = opts.labelOf(item); lbl.title = opts.labelOf(item);
+    const track = document.createElement('div'); track.className = 'bar-track';
+    const fill = document.createElement('div'); fill.className = 'bar-fill';
+    fill.style.width = Math.max(3, item.count / max * 100) + '%';
+    track.appendChild(fill);
+    const val = document.createElement('div'); val.className = 'val'; val.textContent = fmtInt(item.count);
+
+    row.appendChild(lbl); row.appendChild(track); row.appendChild(val);
+
+    const ttRows = [['Requêtes', fmtInt(item.count)], ['Délai moyen', fmtDelay(item.avg_delay)], ['Dans les délais', fmtPct(item.pct_on_time)]];
+    if (item.pct_late > 0) ttRows.push(['Délai expiré', fmtPct(item.pct_late)]);
+    const onMove = e => showTooltip(e, opts.labelOf(item), ttRows);
+    row.addEventListener('pointermove', onMove);
+    row.addEventListener('pointerleave', hideTooltip);
+    row.addEventListener('focus', onMove);
+    row.addEventListener('blur', hideTooltip);
+    if (opts.onClick) row.addEventListener('click', () => opts.onClick(item));
+
+    container.appendChild(row);
+  });
+}
+
+function renderCategoryChart() {
+  const items = [...DATA.by_category].sort((a, b) => b.count - a.count);
+  renderBarList('category-chart', items, {
+    keyOf: i => i.category,
+    labelOf: i => i.category,
+    selectedKey: currentCategory,
+    onClick: item => selectCategory(item.category === currentCategory ? null : item.category),
+  });
+  renderTable('category-table', ['Catégorie', 'Requêtes', 'Délai moyen', 'Dans les délais', 'Délai expiré'],
+    items.map(i => [i.category, fmtInt(i.count), fmtDelay(i.avg_delay), fmtPct(i.pct_on_time), fmtPct(i.pct_late)]));
+}
+
+let currentCategory = null;
+
+function selectCategory(cat) {
+  currentCategory = cat;
+  const sel = document.getElementById('cat-select');
+  sel.value = cat || '__all__';
+  renderCategoryChart();
+  renderSubcategoryChart();
+}
+
+function renderSubcategoryChart() {
+  let items = DATA.by_subcategory;
+  let sub = 'Toutes catégories — 15 sous-catégories les plus fréquentes.';
+  if (currentCategory) {
+    items = items.filter(i => i.category === currentCategory);
+    sub = `${currentCategory} — ${items.length} sous-catégorie${items.length > 1 ? 's' : ''}.`;
+  }
+  const sorted = [...items].sort((a, b) => b.count - a.count);
+  const shown = currentCategory ? sorted : sorted.slice(0, 15);
+  document.getElementById('subcat-sub').textContent = sub;
+  renderBarList('subcategory-chart', shown, {
+    keyOf: i => i.category + '|' + i.subcategory,
+    labelOf: i => i.subcategory,
+    selectedKey: null,
+  });
+  renderTable('subcategory-table', ['Sous-catégorie', 'Catégorie', 'Requêtes', 'Délai moyen', 'Dans les délais', 'Délai expiré'],
+    sorted.map(i => [i.subcategory, i.category, fmtInt(i.count), fmtDelay(i.avg_delay), fmtPct(i.pct_on_time), fmtPct(i.pct_late)]));
+}
+
+function populateCategorySelect() {
+  const sel = document.getElementById('cat-select');
+  const cats = [...DATA.by_category].sort((a, b) => b.count - a.count);
+  const optAll = document.createElement('option'); optAll.value = '__all__'; optAll.textContent = 'Toutes les catégories';
+  sel.appendChild(optAll);
+  cats.forEach(c => {
+    const opt = document.createElement('option'); opt.value = c.category; opt.textContent = `${c.category} (${fmtInt(c.count)})`;
+    sel.appendChild(opt);
+  });
+  sel.value = '__all__';
+  sel.addEventListener('change', () => selectCategory(sel.value === '__all__' ? null : sel.value));
+}
+
+// ---------- table view ----------
+function renderTable(containerId, headers, rows) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  const table = document.createElement('table'); table.className = 'data-table';
+  const thead = document.createElement('thead'); const trh = document.createElement('tr');
+  headers.forEach(h => { const th = document.createElement('th'); th.textContent = h; trh.appendChild(th); });
+  thead.appendChild(trh); table.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    r.forEach(c => { const td = document.createElement('td'); td.textContent = c; tr.appendChild(td); });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  el.appendChild(table);
+}
+
+document.querySelectorAll('[data-toggle]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.getAttribute('data-toggle');
+    const tableEl = document.getElementById(id);
+    const chartEl = document.getElementById(id.replace('-table', '-chart'));
+    const isHidden = tableEl.classList.contains('hidden');
+    tableEl.classList.toggle('hidden', !isHidden);
+    if (chartEl) chartEl.classList.toggle('hidden', isHidden);
+    btn.classList.toggle('active', isHidden);
+    btn.textContent = isHidden ? 'Graphique' : 'Tableau';
+  });
+});
+
+// ---------- monthly SVG charts ----------
+function niceMax(v) {
+  const steps = [1,2,2.5,5,10];
+  const mag = Math.pow(10, Math.floor(Math.log10(v || 1)));
+  for (const s of steps) { const cand = s * mag; if (cand >= v) return cand; }
+  return 10 * mag;
+}
+
+function renderVolumeChart() {
+  const data = DATA.monthly_trend;
+  const w = 560, h = 240, padL = 44, padR = 12, padT = 12, padB = 28;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+  const maxV = niceMax(Math.max(...data.map(d => d.count)));
+  const barW = plotW / data.length;
+  const xOf = i => padL + i * barW;
+  const yOf = v => padT + plotH - (v / maxV) * plotH;
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;font-family:inherit" role="img" aria-label="Nombre de requêtes créées par mois">`;
+  [0, 0.25, 0.5, 0.75, 1].forEach(f => {
+    const y = padT + plotH * (1 - f);
+    svg += `<line class="grid-line" x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}"/>`;
+    svg += `<text x="${padL - 6}" y="${y + 3}" text-anchor="end">${fmtInt(Math.round(maxV * f))}</text>`;
+  });
+  svg += `<line class="axis-line" x1="${padL}" y1="${padT + plotH}" x2="${w - padR}" y2="${padT + plotH}"/>`;
+  data.forEach((d, i) => {
+    const bh = (d.count / maxV) * plotH;
+    const x = xOf(i) + barW * 0.15, bw = barW * 0.7;
+    svg += `<rect class="bar-mark" x="${x}" y="${padT + plotH - bh}" width="${bw}" height="${bh}" rx="3"/>`;
+    if (i % 3 === 0 || i === data.length - 1) {
+      svg += `<text x="${xOf(i) + barW/2}" y="${h - 8}" text-anchor="middle">${monthLabel(d.month)}</text>`;
+    }
+  });
+  svg += `</svg>`;
+  const el = document.getElementById('volume-chart');
+  el.innerHTML = svg;
+
+  const svgEl = el.querySelector('svg');
+  data.forEach((d, i) => {
+    const bh = (d.count / maxV) * plotH;
+    const hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    hit.setAttribute('x', xOf(i)); hit.setAttribute('y', padT);
+    hit.setAttribute('width', barW); hit.setAttribute('height', plotH);
+    hit.setAttribute('fill', 'transparent');
+    hit.addEventListener('pointermove', e => showTooltip(e, monthLabel(d.month) + ' ' + d.month.slice(0,4), [['Requêtes créées', fmtInt(d.count)]]));
+    hit.addEventListener('pointerleave', hideTooltip);
+    svgEl.appendChild(hit);
+  });
+
+  renderTable('volume-table', ['Mois', 'Requêtes créées'], data.map(d => [monthLabel(d.month) + ' ' + d.month.slice(0,4), fmtInt(d.count)]));
+}
+
+function renderDelayChart() {
+  const data = DATA.monthly_trend;
+  const w = 560, h = 240, padL = 44, padR = 12, padT = 12, padB = 28;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+  const withDelay = data.filter(d => d.avg_delay !== null);
+  const maxV = niceMax(Math.max(...withDelay.map(d => d.avg_delay)));
+  const barW = plotW / data.length;
+  const xOf = i => padL + i * barW + barW / 2;
+  const yOf = v => padT + plotH - (v / maxV) * plotH;
+
+  const firstReliableIdx = data.findIndex(d => d.avg_delay !== null);
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;font-family:inherit" role="img" aria-label="Délai moyen de traitement par mois">`;
+  if (firstReliableIdx > 0) {
+    svg += `<rect class="caveat-band" x="${padL}" y="${padT}" width="${firstReliableIdx * barW}" height="${plotH}"/>`;
+  }
+  [0, 0.25, 0.5, 0.75, 1].forEach(f => {
+    const y = padT + plotH * (1 - f);
+    svg += `<line class="grid-line" x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}"/>`;
+    svg += `<text x="${padL - 6}" y="${y + 3}" text-anchor="end">${Math.round(maxV * f)}j</text>`;
+  });
+  svg += `<line class="axis-line" x1="${padL}" y1="${padT + plotH}" x2="${w - padR}" y2="${padT + plotH}"/>`;
+
+  let path = '', area = '';
+  withDelay.forEach((d, idx) => {
+    const i = data.indexOf(d);
+    const x = xOf(i), y = yOf(d.avg_delay);
+    path += (idx === 0 ? 'M' : 'L') + x + ',' + y + ' ';
+    area += (idx === 0 ? 'M' + x + ',' + (padT+plotH) + ' L' : 'L') + x + ',' + y + ' ';
+  });
+  const lastPt = withDelay[withDelay.length - 1];
+  area += `L${xOf(data.indexOf(lastPt))},${padT+plotH} Z`;
+  svg += `<path class="trend-area" d="${area}"/>`;
+  svg += `<path class="trend-line" d="${path}"/>`;
+  withDelay.forEach(d => {
+    const i = data.indexOf(d);
+    svg += `<circle class="trend-dot" cx="${xOf(i)}" cy="${yOf(d.avg_delay)}" r="3.5"/>`;
+  });
+
+  data.forEach((d, i) => {
+    if (i % 3 === 0 || i === data.length - 1) {
+      svg += `<text x="${xOf(i)}" y="${h - 8}" text-anchor="middle">${monthLabel(d.month)}</text>`;
+    }
+  });
+  svg += `</svg>`;
+  const el = document.getElementById('delay-chart');
+  el.innerHTML = svg;
+
+  const svgEl = el.querySelector('svg');
+  data.forEach((d, i) => {
+    const hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    hit.setAttribute('x', padL + i * barW); hit.setAttribute('y', padT);
+    hit.setAttribute('width', barW); hit.setAttribute('height', plotH);
+    hit.setAttribute('fill', 'transparent');
+    const rows = d.avg_delay === null
+      ? [['Délai moyen', 'non fiable (migration)']]
+      : [['Délai moyen', fmtDelay(d.avg_delay)], ['Requêtes créées', fmtInt(d.count)]];
+    hit.addEventListener('pointermove', e => showTooltip(e, monthLabel(d.month) + ' ' + d.month.slice(0,4), rows));
+    hit.addEventListener('pointerleave', hideTooltip);
+    svgEl.appendChild(hit);
+  });
+
+  renderTable('delay-table', ['Mois', 'Délai moyen'], data.map(d => [monthLabel(d.month) + ' ' + d.month.slice(0,4), d.avg_delay === null ? 'non fiable' : fmtDelay(d.avg_delay)]));
+}
+
+// ---------- init ----------
+renderKpis();
+renderSla();
+populateCategorySelect();
+renderCategoryChart();
+renderSubcategoryChart();
+renderVolumeChart();
+renderDelayChart();
+</script>
+</body>
+</html>
