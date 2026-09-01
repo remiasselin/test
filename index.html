@@ -29,17 +29,29 @@
       <div class="view-inner">
         <div class="intro-banner">
           <h1>Grille des zones, usages et normes</h1>
-          <p>Recherchez une zone, une adresse ou un numéro de lot pour connaître les usages permis et les normes d'implantation applicables selon le règlement de zonage <strong id="reglementNumero"></strong>.</p>
-          <p class="data-note">⚠️ Les données ci-dessous sont des exemples de démonstration. Le contenu réel du nouveau plan d'urbanisme (actuellement en document Word) doit être importé dans l'onglet <em>Administration → Import / Export</em> pour remplacer ces exemples.</p>
+          <p>Recherchez une fiche de zonage, une adresse ou un numéro de lot pour connaître les usages permis et les normes d'implantation applicables selon <strong id="reglementNumero"></strong>.</p>
+          <p class="data-note">⚠️ La classification des usages (groupes, classes, sous-classes) provient du document de référence fourni par le Service de l'urbanisme. Les <strong>fiches de zonage</strong> (normes chiffrées par zone) sont toutefois des exemples de démonstration : le document fourni est une trame de règlement générique (« Ville de X ») qui ne contient pas les fiches réelles de Terrebonne (annexe « B »). Importez ces données réelles dans l'onglet <em>Administration → Import / Export</em> dès qu'elles seront disponibles.</p>
         </div>
 
-        <div class="search-bar">
-          <input type="search" id="publicSearch" placeholder="Rechercher une zone (ex. H-1), une adresse ou un numéro de lot..." aria-label="Recherche" />
-          <div class="category-filters" id="categoryFilters"></div>
+        <div class="sub-nav">
+          <button class="subtab-btn active" data-subtab="zones" type="button">Fiches de zonage</button>
+          <button class="subtab-btn" data-subtab="classification" type="button">Classification des usages</button>
         </div>
 
-        <p id="publicResultInfo" class="result-info"></p>
-        <div id="zoneGrid" class="zone-grid"></div>
+        <div id="public-zones" class="subtab-panel active">
+          <div class="search-bar">
+            <input type="search" id="publicSearch" placeholder="Rechercher une zone (ex. H-1), une adresse ou un numéro de lot..." aria-label="Recherche" />
+            <div class="category-filters" id="categoryFilters"></div>
+          </div>
+
+          <p id="publicResultInfo" class="result-info"></p>
+          <div id="zoneGrid" class="zone-grid"></div>
+        </div>
+
+        <div id="public-classification" class="subtab-panel">
+          <p class="result-info">Structure des usages (groupe → classe → sous-classe) telle qu'établie au document de référence. Cette classification est modifiable uniquement via Import / Export JSON (onglet Administration).</p>
+          <div id="classificationTree" class="classification-tree"></div>
+        </div>
       </div>
     </section>
 
